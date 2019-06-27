@@ -9,3 +9,4 @@ rstcheck
 scikit-learn
 mlflow
 tensorflow
+tornado

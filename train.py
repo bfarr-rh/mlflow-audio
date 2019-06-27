@@ -14,7 +14,18 @@ from sklearn.linear_model import ElasticNet
 
 import mlflow
 import mlflow.sklearn
+import tornado.ioloop
+import tornado.web
 
+class MainHandler(tornado.web.RequestHandler):
+    def get(self):
+        self.write("Hello, world")
+        train_data()
+
+def make_app():
+    return tornado.web.Application([
+        (r"/", MainHandler),
+    ])
 
 def eval_metrics(actual, pred):
     rmse = np.sqrt(mean_squared_error(actual, pred))
@@ -24,7 +35,7 @@ def eval_metrics(actual, pred):
 
 
 
-if __name__ == "__main__":
+def train_data():
     warnings.filterwarnings("ignore")
     np.random.seed(40)
 
@@ -64,3 +75,10 @@ if __name__ == "__main__":
         mlflow.log_metric("mae", mae)
 
         mlflow.sklearn.log_model(lr, "model")
+
+
+if __name__ == "__main__":
+    app = make_app()
+    app.listen(8080)
+    tornado.ioloop.IOLoop.current().start()
+
