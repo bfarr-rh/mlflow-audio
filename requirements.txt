@@ -3,10 +3,10 @@ pylint==1.8.2
 xgboost
 pytest
 pyarrow
-pandas
-numpy
+pandas==0.22.0
+numpy==1.14.3
 rstcheck
-scikit-learn
+scikit-learn==0.19.1
 mlflow
 tensorflow
 tornado

@@ -11,21 +11,64 @@ import numpy as np
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import ElasticNet
+from io import StringIO
 
 import mlflow
 import mlflow.sklearn
 import tornado.ioloop
 import tornado.web
+from tornado import websocket, web, ioloop
+import json, os
 
-class MainHandler(tornado.web.RequestHandler):
-    def get(self):
-        self.write("Hello, world")
-        train_data()
+class IndexHandler(web.RequestHandler):
+	'''Handle requests on / '''
+	def get(self):
+		self.render("index.html")
+
+class ApiPredictHandler(web.RequestHandler):
+    def set_default_headers(self):
+        print ("setting headers!!!")
+        self.set_header("Access-Control-Allow-Origin", "*")
+        self.set_header("Access-Control-Allow-Headers", "x-requested-with")
+        self.set_header('Access-Control-Allow-Methods', 'POST, GET, OPTIONS')
+    def post(self, *args):
+        '''data = json.loads(self.request.body)'''
+        data = self.request.body.decode("utf-8")
+        prediction = predict(data)
+        print(prediction)
+        self.write(str(prediction));
+        self.finish()
+
+class ApiTrainHandler(web.RequestHandler):
+    def set_default_headers(self):
+        print ("setting headers!!!")
+        self.set_header("Access-Control-Allow-Origin", "*")
+        self.set_header("Access-Control-Allow-Headers", "x-requested-with")
+        self.set_header('Access-Control-Allow-Methods', 'POST, GET, OPTIONS')
+    def post(self, *args):
+        '''data = json.loads(self.request.body)'''
+         # Read the wine-quality csv file (make sure you're running this from the root of MLflow!)
+        '''uploaded_csv_file = self.request.files['file'][0]'''
+        '''data = uploaded_csv_file.read_all()'''
+        data = pd.read_csv(StringIO(self.request.body.decode("utf-8")))
+        print(data)
+        '''wine_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "audio-dance.csv")'''
+        '''data = pd.read_csv(wine_path)'''
+        train_data(data);
+        self.finish()
 
 def make_app():
     return tornado.web.Application([
-        (r"/", MainHandler),
+        (r"/", IndexHandler),
+        (r'/predict', ApiPredictHandler),
+         (r'/train', ApiTrainHandler)
     ])
+
+def predict(values):
+    test_values = pd.read_csv(StringIO(values), header=None)
+    prediction = lr.predict(test_values)
+
+    return prediction
 
 def eval_metrics(actual, pred):
     rmse = np.sqrt(mean_squared_error(actual, pred))
@@ -35,13 +78,9 @@ def eval_metrics(actual, pred):
 
 
 
-def train_data():
+def train_data(data):
     warnings.filterwarnings("ignore")
     np.random.seed(40)
-
-    # Read the wine-quality csv file (make sure you're running this from the root of MLflow!)
-    wine_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "wine-quality.csv")
-    data = pd.read_csv(wine_path)
 
     # Split the data into training and test sets. (0.75, 0.25) split.
     train, test = train_test_split(data)
@@ -52,10 +91,11 @@ def train_data():
     train_y = train[["quality"]]
     test_y = test[["quality"]]
 
-    alpha = float(sys.argv[1]) if len(sys.argv) > 1 else 0.5
-    l1_ratio = float(sys.argv[2]) if len(sys.argv) > 2 else 0.5
+    alpha = float(sys.argv[1]) if len(sys.argv) > 1 else 1.0
+    l1_ratio = float(sys.argv[2]) if len(sys.argv) > 2 else 1.0
 
     with mlflow.start_run():
+        global lr 
         lr = ElasticNet(alpha=alpha, l1_ratio=l1_ratio, random_state=42)
         lr.fit(train_x, train_y)
 

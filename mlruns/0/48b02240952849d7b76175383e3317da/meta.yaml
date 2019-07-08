@@ -1,0 +1,15 @@
+artifact_uri: file:///Users/bfarr/projects/audio/mlflow-example/mlruns/0/48b02240952849d7b76175383e3317da/artifacts
+end_time: 1562038251027
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+name: ''
+run_id: 48b02240952849d7b76175383e3317da
+run_uuid: 48b02240952849d7b76175383e3317da
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1562038250850
+status: 3
+tags: []
+user_id: bfarr
