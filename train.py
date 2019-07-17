@@ -20,6 +20,8 @@ import tornado.web
 from tornado import websocket, web, ioloop
 import json, os
 
+
+
 class IndexHandler(web.RequestHandler):
 	'''Handle requests on / '''
 	def get(self):
@@ -34,7 +36,8 @@ class ApiPredictHandler(web.RequestHandler):
     def post(self, *args):
         '''data = json.loads(self.request.body)'''
         data = self.request.body.decode("utf-8")
-        prediction = predict(data)
+        experimentName = self.get_query_argument("experimentName")
+        prediction = predict(data,experimentName)
         print(prediction)
         self.write(str(prediction));
         self.finish()
@@ -54,7 +57,9 @@ class ApiTrainHandler(web.RequestHandler):
         print(data)
         '''wine_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "audio-dance.csv")'''
         '''data = pd.read_csv(wine_path)'''
-        train_data(data);
+        experimentName = self.get_query_argument("experimentName")
+        print("Experiment Name : " + experimentName)
+        train_data(data, experimentName);
         self.finish()
 
 def make_app():
@@ -64,8 +69,15 @@ def make_app():
          (r'/train', ApiTrainHandler)
     ])
 
-def predict(values):
+def predict(values, experimentName):
+    global lr 
+    global loadedModelName
     test_values = pd.read_csv(StringIO(values), header=None)
+    if experimentName != loadedModelName:
+        print("Loading model :" + experimentName)
+        lr = mlflow.sklearn.load_model(experimentName)
+        loadedModelName = experimentName
+
     prediction = lr.predict(test_values)
 
     return prediction
@@ -78,7 +90,7 @@ def eval_metrics(actual, pred):
 
 
 
-def train_data(data):
+def train_data(data, experimentName):
     warnings.filterwarnings("ignore")
     np.random.seed(40)
 
@@ -96,6 +108,7 @@ def train_data(data):
 
     with mlflow.start_run():
         global lr 
+        global loadedModelName
         lr = ElasticNet(alpha=alpha, l1_ratio=l1_ratio, random_state=42)
         lr.fit(train_x, train_y)
 
@@ -114,10 +127,14 @@ def train_data(data):
         mlflow.log_metric("r2", r2)
         mlflow.log_metric("mae", mae)
 
-        mlflow.sklearn.log_model(lr, "model")
-
+        mlflow.sklearn.log_model(lr, experimentName)
+        mlflow.sklearn.save_model(lr, experimentName, serialization_format=mlflow.sklearn.SERIALIZATION_FORMAT_CLOUDPICKLE)
+        loadedModelName = experimentName
 
 if __name__ == "__main__":
+    global lr 
+    global loadedModelName
+    loadedModelName = ''
     app = make_app()
     app.listen(8080)
     tornado.ioloop.IOLoop.current().start()
