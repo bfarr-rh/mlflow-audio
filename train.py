@@ -27,6 +27,35 @@ class IndexHandler(web.RequestHandler):
 	def get(self):
 		self.render("index.html")
 
+class LoadModelHandler(web.RequestHandler):
+    def set_default_headers(self):
+        print ("setting headers!!!")
+        self.set_header("Access-Control-Allow-Origin", "*")
+        self.set_header("Access-Control-Allow-Headers", "x-requested-with")
+        self.set_header('Access-Control-Allow-Methods', 'POST, GET, OPTIONS')
+    def post(self, *args):
+        global lr 
+        global loadedModelName
+        experimentName = self.get_query_argument("experimentName")
+        print("Loading model :" + experimentName)
+        lr = mlflow.sklearn.load_model(experimentName)
+        loadedModelName = experimentName
+        self.write("OK");
+        self.finish()
+
+class SaveModelHandler(web.RequestHandler):
+    def set_default_headers(self):
+        print ("setting headers!!!")
+        self.set_header("Access-Control-Allow-Origin", "*")
+        self.set_header("Access-Control-Allow-Headers", "x-requested-with")
+        self.set_header('Access-Control-Allow-Methods', 'POST, GET, OPTIONS')
+    def post(self, *args):
+        global lr 
+        global loadedModelName
+        mlflow.sklearn.save_model(lr, loadedModelName, serialization_format=mlflow.sklearn.SERIALIZATION_FORMAT_CLOUDPICKLE)
+        self.write("OK");
+        self.finish()
+
 class ApiPredictHandler(web.RequestHandler):
     def set_default_headers(self):
         print ("setting headers!!!")
@@ -66,18 +95,15 @@ def make_app():
     return tornado.web.Application([
         (r"/", IndexHandler),
         (r'/predict', ApiPredictHandler),
-         (r'/train', ApiTrainHandler)
+         (r'/train', ApiTrainHandler),
+         (r'/savemodel', SaveModelHandler),
+         (r'/loadmodel', LoadModelHandler)
     ])
 
 def predict(values, experimentName):
     global lr 
     global loadedModelName
     test_values = pd.read_csv(StringIO(values), header=None)
-    if experimentName != loadedModelName:
-        print("Loading model :" + experimentName)
-        lr = mlflow.sklearn.load_model(experimentName)
-        loadedModelName = experimentName
-
     prediction = lr.predict(test_values)
 
     return prediction
@@ -128,7 +154,7 @@ def train_data(data, experimentName):
         mlflow.log_metric("mae", mae)
 
         mlflow.sklearn.log_model(lr, experimentName)
-        mlflow.sklearn.save_model(lr, experimentName, serialization_format=mlflow.sklearn.SERIALIZATION_FORMAT_CLOUDPICKLE)
+       
         loadedModelName = experimentName
 
 if __name__ == "__main__":
