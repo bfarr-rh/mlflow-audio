@@ -7,6 +7,6 @@ pandas==0.22.0
 numpy==1.14.3
 rstcheck
 scikit-learn==0.19.1
-mlflow
+mlflow==1.0.0
 tensorflow
 tornado
