@@ -166,12 +166,5 @@ if __name__ == "__main__":
     for item, value in os.environ.items():
         print('{}: {}'.format(item, value))
 
-    print(os.environ["HOME"])
-    print(os.environ["MLFLOW_TRACKING_URI"])
-    print(os.environ["MLFLOW_EXPERIMENT_ID"])
-    mlflow.set_experiment(os.environ["MLFLOW_EXPERIMENT_ID"])
-    mlflow.set_tracking_uri(os.environ["MLFLOW_TRACKING_URI"])
-    mlflow.set_experiment(os.environ["MLFLOW_EXPERIMENT_ID"])
-
     tornado.ioloop.IOLoop.current().start()
 
